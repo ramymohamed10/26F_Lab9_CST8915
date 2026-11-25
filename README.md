@@ -4,6 +4,51 @@ In Lab 8, you pushed six application images to Docker Hub and deployed them to A
 
 Start with Store Front so you can see one release go all the way through. Then repeat for the other five application services.
 
+## Introduction to GitHub Actions
+
+**GitHub Actions** is a powerful workflow automation tool integrated directly into GitHub. It enables developers to automate tasks like testing, building, and deploying code using YAML-defined workflows. Workflows consist of jobs, steps, and triggers that execute tasks in response to events, such as a code push or pull request.
+
+### Key Components of a Workflow
+
+- **Workflow**: The pipeline definition written in YAML and stored in the `.github/workflows/` directory.
+- **Event**: The trigger for the workflow (e.g., a push to the `main` branch).
+- **Job**: A group of steps executed in sequence. Jobs can run independently or depend on other jobs.
+- **Step**: A single task, such as running a command or action.
+- **Runner**: The virtual machine where jobs run (e.g., `ubuntu-latest`).
+
+### The Store Front workflow
+
+Follow a push through your Store Front fork. Each job gets its own `ubuntu-latest` runner. In the workflow YAML, `needs` tells GitHub which job must succeed before the next one starts.
+
+```mermaid
+flowchart TB
+    accTitle: Store Front workflow from a push to an AKS rollout
+    accDescr: A push to main triggers four jobs in order, each on its own Ubuntu runner. Build pushes a test image, Test simulates integration tests, and Release publishes the image under the Lab 8 tag. The Deploy job runs two steps on the same runner to restart the deployment and verify the rollout.
+
+    push(["Event · Push to main"])
+    subgraph workflow["Workflow · Build, Test, and Deploy"]
+        direction TB
+        build["Build job<br/>Build and push a test image"]
+        test["Test job<br/>Simulate integration tests"]
+        release["Release job<br/>Publish the Lab 8 tag to Docker Hub"]
+        subgraph deploy["Deploy job · ubuntu-latest runner"]
+            direction LR
+            restart["Step 1 · Deploy to AKS"] --> verify["Step 2 · Verify Deployment"]
+        end
+        build --> test --> release --> deploy
+    end
+    push -->|triggers| workflow
+
+    classDef event fill:#e0f2fe,stroke:#0369a1,color:#0c4a6e
+    classDef job fill:#eef2ff,stroke:#4f46e5,color:#1e1b4b
+    classDef step fill:#dcfce7,stroke:#15803d,color:#14532d
+    class push event
+    class build,test,release job
+    class restart,verify step
+    style workflow fill:transparent,stroke:#64748b
+    style deploy fill:transparent,stroke:#15803d
+```
+
 ## Step 1. Connect to your lab cluster
 
 Use your Lab 8 cluster if it is still running. If you cleaned it up, create a cluster with the Lab 8 node configuration and the **Local accounts with Kubernetes RBAC** setting from Lab 6. Connect to it using `az aks get-credentials`. [Lab 6 cluster setup](../Lab6_CST8915/README.md#step-2-create-an-azure-kubernetes-cluster-aks) · [Lab 8 cluster setup](../Lab8_CST8915/Lab8_Instructions.md#step-2-set-up-the-aks-cluster)
